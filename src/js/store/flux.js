@@ -1,9 +1,9 @@
 const getState = ({ getStore, getActions, setStore }) => {
+    const user = "patient";
     return {
         store: {
             contacts: [],
             selectedContact: null,
-            agenda: null, // Ensure this is set appropriately later
             demo: [
                 {
                     title: "FIRST",
@@ -18,134 +18,113 @@ const getState = ({ getStore, getActions, setStore }) => {
             ]
         },
         actions: {
-            exampleFunction: () => {
-                getActions().changeColor(0, "green");
+            // Sets the agenda and ensures that the store is updated with the new agenda value.
+            addAgenda: async() => {
+                try {
+                    const response = await fetch(`https://playground.4geeks.com/contact/agendas/${user}`, {
+                        method: "POST",
+                        headers: {"Content-Type": "application/json",
+                        body: JSON.stringify({})    
+    
+                        }
+                    }) 
+                    if (!response.ok) throw {status: response.status, statusText: response.statustext}
+                  console.log("User added successfully");
+                  getActions().getAgenda();
+                } catch (error) {
+                    console.error("Adding user fail.", error);
+                }
+                
             },
-            setAgenda: (agenda) => {
-                setStore({ agenda });
-            },
+
+            // Fetch agenda contacts only if agenda is defined
             getAgenda: async () => {
-                const { agenda } = getStore();
-                if (!agenda) {
-                    console.error("Agenda is not defined.");
-                    return;  
-                }
-
                 try {
-                    const response = await fetch(`https://playground.4geeks.com/contact/agendas/${agenda}/contacts`);
-                    if (!response.ok) {
-                        throw new Error("Failed to fetch agenda contacts.");
-                    }
-                    const data = await response.json();
-                    setStore({ contacts: data.contacts });
-                } catch (e) {
-                    console.error("Error fetching agenda contacts:", e);
+                    const response = await fetch(`https://playground.4geeks.com/contact/agendas/${user}/contacts`);
+                    if (!response.ok) throw {status: response.status, statusText: response.statustext}
+                    console.log("Response from API", response)
+                    const data = await response.json(); 
+                    console.log("response.jsonified", data)
+                    setStore({ contacts: data.contacts }); // Ensure correct path to contacts
+                } catch (error) {
+                    console.error("Error fetching agenda contacts:", error);
+                    if (error.status === 404) getActions().addAgenda()
                 }
             },
-            addContact: async (contact) => {
-                const { agenda, contacts } = getStore();
-                if (!agenda) {
-                    console.error("Agenda is not defined.");
-                    return;  
-                }
 
+            // Adds a contact to the agenda. Ensure the agenda is defined before making API calls.
+            addContact: async (contact) => {
+                const store = getStore();
                 try {
-                    const response = await fetch(`https://playground.4geeks.com/contact/agendas/${agenda}/contacts`, {
+                    const response = await fetch(`https://playground.4geeks.com/contact/agendas/${user}/contacts`, {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify(contact)
                     });
+
+                    if (response.status === 422) {
+                        const errorData = await response.json();
+                        console.error("Validation Error: ", errorData.detail);
+                        return;
+                    }
+
                     if (!response.ok) {
                         throw new Error("Failed to add contact.");
                     }
                     const data = await response.json();
-                    setStore({ contacts: [...contacts, data] });
+                    getActions().getAgenda();
                 } catch (e) {
                     console.error("Error adding contact:", e);
                 }
             },
-            deleteContact: async (id) => {
-                const { agenda, contacts } = getStore();
-                if (!agenda) {
-                    console.error("Agenda is not defined.");
-                    return;  
-                }
 
+            // Deletes a contact by id. Ensures agenda is defined before proceeding.
+            deleteContact: async (id) => {
                 try {
-                    const response = await fetch(`https://playground.4geeks.com/contact/agendas/${agenda}/contacts/${id}`, {
+                    const response = await fetch(`https://playground.4geeks.com/contact/agendas/${user}/contacts/${id}`, {
                         method: "DELETE",
                         headers: { "Content-Type": "application/json" }
                     });
                     if (!response.ok) {
                         throw new Error("Failed to delete contact.");
                     }
-                    const newContacts = contacts.filter(contact => contact.id !== id);
-                    setStore({ contacts: newContacts });
+                    getActions().getAgenda();
                 } catch (e) {
                     console.error("Error deleting contact:", e);
                 }
             },
+
+            // Edits a contact by id. Ensures agenda is defined before making the API call.
             editContact: async (id, editContact) => {
                 const { agenda, contacts } = getStore();
-                if (!agenda) {
-                    console.error("Agenda is not defined.");
-                    return;  
-                }
-
                 try {
-                    const response = await fetch(`https://playground.4geeks.com/contact/agendas/${agenda}/contacts/${id}`, {
+                    const response = await fetch(`https://playground.4geeks.com/contact/agendas/${user}/contacts/${id}`, {
                         method: "PUT",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify(editContact)
                     });
+                    if (response.status === 422) {
+                        const errorData = await response.json();
+                        console.error("Validation Error: ", errorData.detail);
+                        return;
+                    }
+
                     if (!response.ok) {
                         throw new Error("Failed to edit contact.");
                     }
+
                     const data = await response.json();
-                    const editContacts = contacts.map(contact =>
-                        contact.id === id ? data : contact
-                    );
-                    setStore({ contacts: editContacts });
+                    getActions().getAgenda();
                 } catch (e) {
                     console.error("Error editing contact:", e);
                 }
-            },
-            getContact: async (id) => {
-                const { agenda } = getStore();
-                if (!agenda) {
-                    console.error("Agenda is not defined.");
-                    return; 
-                }
+            },  
 
-                try {
-                    const response = await fetch(`https://playground.4geeks.com/contact/agendas/${agenda}/contacts/${id}`);
-                    if (!response.ok) {
-                        throw new Error("Failed to fetch contact.");
-                    }
-                    const data = await response.json();
-                    setStore({ selectedContact: data });
-                } catch (e) {
-                    console.error("Error fetching contact:", e);
-                }
+            exampleFunction: () => {
+                getActions().changeColor(0, "green");
             },
-            getContacts: async () => {
-                const { agenda } = getStore();
-                if (!agenda) {
-                    console.error("Agenda is not defined.");
-                    return; 
-                }
 
-                try {
-                    const response = await fetch(`https://playground.4geeks.com/contact/agendas/${agenda}/contacts`);
-                    if (!response.ok) {
-                        throw new Error("Failed to fetch contacts.");
-                    }
-                    const data = await response.json();
-                    setStore({ contacts: data.contacts });
-                } catch (e) {
-                    console.error("Error fetching contacts:", e);
-                }
-            },
+            // Sets a demo object in the store
             setDemo: (demo) => {
                 setStore({ demo });
             }

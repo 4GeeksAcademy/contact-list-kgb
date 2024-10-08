@@ -1,4 +1,4 @@
-import React, { useContext, useEffect } from "react";
+import React, { useContext, useState } from "react";
 import "../../styles/home.css";
 import { Context } from "../store/appContext";
 import { Link } from "react-router-dom";
@@ -7,14 +7,6 @@ import { ContactCard } from "../component/contacts";
 export const Home = () => {
 	const { store, actions } = useContext(Context);
 
-	useEffect(() => {
-		// Check if getAgenda is defined before calling it
-		if (typeof actions.getAgenda === "function") {
-			actions.getAgenda();
-		} else {
-			console.error("getAgenda is not defined in actions");
-		}
-	}, [actions]);
 
 	return (
 		<div className="container">
@@ -23,20 +15,17 @@ export const Home = () => {
 					<button className="btn btn-success my-3">Add new contact.</button>
 				</Link>
 			</div>
-			<div
-				id="contacts"
-				className="panel-collapse collapse show mb-5"
-				aria-expanded="true">
-				<ul className="list-group pull-down" id="contact-list">
-					{store.contacts && store.contacts.length > 0 ? (
-						store.contacts.map((contact, index) => (
-							<ContactCard key={index} contact={contact} />
-						))
-					) : (
-						<li className="list-group-item">No contacts available.</li>
-					)}
-				</ul>
-			</div>
+				<div id="contacts" className="panel-collapse collapse show mb-5" aria-expanded="true">
+					<ul className="list-group pull-down" id="contact-list">
+						{store.contacts && store.contacts.length > 0 ? (
+							store.contacts.map((contact, index) => (
+								<ContactCard key={index} contact={contact} />
+							))
+						) : (
+							<li className="list-group-item">No contacts available.</li>
+						)}
+					</ul>
+				</div>
 		</div>
 	);
 };
